@@ -1,2 +1,2 @@
-documents_path: "src/assets"
-vectore_store: "src/assets/index/faiss_index"
+documents_path: src/assets
+vector_store: src/assets/index/faiss_index

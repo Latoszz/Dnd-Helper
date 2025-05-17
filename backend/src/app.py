@@ -4,22 +4,34 @@ from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain.text_splitter import SentenceTransformersTokenTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from backend.src.config_manager import ConfigManager
+from config_manager import ConfigManager
 
 
 def create_vector_store(recreate=False):
-    config = ConfigManager("config.yaml")
-    index_name = config["VECTOR_STORE"]
+    config = ConfigManager("src/config.yaml")
+    index_name = config.get_value("vector_store")
+    embeddings = HuggingFaceEmbeddings(
+        model_name="BAAI/bge-large-en-v1.5",
+        model_kwargs={"device": "cuda" if torch.cuda.is_available() else "cpu"},
+        encode_kwargs={"normalize_embeddings": True},
+    )
 
-    if os.path.exists(index_name) and not recreate:
+    print(f"Looking for index {index_name}")
+    if index_name is not None and os.path.exists(index_name) and not recreate:
         print("Vector store detected")
-        db = FAISS.load_local(index_name)
+        db = FAISS.load_local(
+            index_name, embeddings, allow_dangerous_deserialization=True
+        )
         return db
 
-    if "DOCUMENTS_PATH" not in config:
-        config["DOCUMENTS_PATH"] = input("Please provide path to the documents: ")
+    if recreate:
+        print("Creating new index")
 
-    loader = PyPDFDirectoryLoader(dir=config["DOCUMENTS_PATH"])
+    doc_path = config.get_value("documents_path")
+    if doc_path is None:
+        doc_path = input("Please provide path to the documents: ")
+
+    loader = PyPDFDirectoryLoader(path=doc_path)
 
     text_splitter = SentenceTransformersTokenTextSplitter(
         model_name="BAAI/bge-large-en-v1.5", chunk_size=384, chunk_overlap=30
@@ -33,11 +45,6 @@ def create_vector_store(recreate=False):
         if torch.cuda.is_available()
         else "No GPU detected"
     )
-    embeddings = HuggingFaceEmbeddings(
-        model_name="BAAI/bge-large-en-v1.5",
-        model_kwargs={"device": "cuda" if torch.cuda.is_available() else "cpu"},
-        encode_kwargs={"normalize_embeddings": True},
-    )
 
     db = FAISS.from_documents(documents, embeddings)
     db.save_local(index_name)
@@ -46,4 +53,4 @@ def create_vector_store(recreate=False):
 
 
 if __name__ == "__main__":
-    create_vector_store()
+    create_vector_store(recreate=True)

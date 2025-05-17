@@ -16,6 +16,7 @@ class ConfigManager:
         """
         self.config_path = config_path
         self.config = self._load_config()
+        print(self.config)
 
     def _load_config(self) -> Dict[str, Any]:
         """
