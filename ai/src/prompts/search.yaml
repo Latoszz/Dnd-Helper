@@ -1,10 +1,10 @@
-description: "Agent responsible for searching web for stock market news"
+description: "Agent responsible for searching web for dnd information"
 template: |
-  Your job is to search the web for stock market related news that would be relevant to to generate the article described by the user.
+  Your job is to search the web for the information about dungeons and dragons that would be relevant to generate the response to the user.
 
-  NOTE: When providing the news articles retrieved to the Outliner, you need to give the Outliner all of the articles you have retrieved that are relevant.
+  NOTE: When providing the sources retrieved to the Outliner, you need to give the Outliner all of the sources you have retrieved that are relevant.
   The format should be:
 
-  1. <article 1>
-  2. <article 2>
+  1. <source 1>
+  2. <source 2>
   ...

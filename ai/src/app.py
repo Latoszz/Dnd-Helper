@@ -1,5 +1,6 @@
 from ai.src.agents.agent_factory import AgentFactory
 from ai.src.managers.config_manager import Config
+from backend.src.app import create_vector_store
 
 from typing_extensions import TypedDict
 from typing import Literal, Annotated
@@ -8,8 +9,9 @@ import functools
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import AnyMessage, HumanMessage
 from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain.tools.retriever import create_retriever_tool
 
-from langgraph.graph import StateGraph, END
+from langgraph.graph import StateGraph
 from langgraph.prebuilt import ToolNode
 from langgraph.graph.message import add_messages
 
@@ -26,16 +28,51 @@ def main():
         temperature=config_obj.temperature
     )
 
-    tools = [TavilySearchResults(max_results=5)]
+    question = "How to make the most powerful fireball"
+
+    retriever = create_vector_store().as_retriever()
+    retriever_tool = create_retriever_tool(
+        retriever,
+        "retrieve_dnd",
+        "Search and return information about dungeons and dragons",
+    )
+    tools = [retriever_tool, TavilySearchResults(max_results=5)]
     agent_factory = AgentFactory(llm, tools)
 
     agents = {
         "search": agent_factory.create_agent("search"),
-        "outliner": agent_factory.create_agent("outliner"),
         "writer": agent_factory.create_agent("writer"),
-        "editor": agent_factory.create_agent("editor")
     }
-    return llm, tools, agents
+
+    search_agent = agents['search']
+    writer_agent = agents['writer']
+
+    search_node = functools.partial(agent_node, agent=search_agent, name="Search Agent")
+    writer_node = functools.partial(agent_node, agent=writer_agent, name="Writer Agent")
+    tool_node = ToolNode(tools)
+
+    workflow = StateGraph(AgentState)
+
+    # Nodes
+    workflow.add_node("search", search_node)
+    workflow.add_node("tools", tool_node)
+    workflow.add_node("writer", writer_node)
+
+    # Edges
+    workflow.set_entry_point("search")
+    workflow.add_conditional_edges(
+        "search",
+        should_search,
+    )
+    workflow.add_edge("tools", 'search')
+    workflow.set_finish_point("writer")
+
+    graph = workflow.compile()
+
+    input_message = HumanMessage(content=question)
+
+    for event in graph.stream({"messages": [input_message]}, stream_mode="values"):
+        event['messages'][-1].pretty_print()
 
 def agent_node(state, agent, name):
   result = agent.invoke(state)
@@ -43,58 +80,14 @@ def agent_node(state, agent, name):
       'messages': [result]
   }
 
-def editor_node(state):
-  result = editor_agent.invoke(state)
-  N = state["no_of_iterations"] + 1
-  return {
-      "messages": [result],
-      "no_of_iterations": N
-  }
-
-def should_search(state) -> Literal["tools", "outliner"]:
+def should_search(state) -> Literal["tools", "writer"]:
     messages = state['messages']
     last_message = messages[-1]
     # If the LLM makes a tool call, then we route to the "tools" node
     if last_message.tool_calls:
         return "tools"
     # Otherwise, we stop (reply to the user)
-    return "outliner"
+    return "writer"
 
-llm, tools, agents = main()
-
-search_agent = agents['search']
-outliner_agent = agents['outliner']
-writer_agent = agents['writer']
-editor_agent = agents['editor']
-
-search_node = functools.partial(agent_node, agent=search_agent, name="Search Agent")
-outliner_node = functools.partial(agent_node, agent=outliner_agent, name="Outliner Agent")
-writer_node = functools.partial(agent_node, agent=writer_agent, name="Writer Agent")
-tool_node = ToolNode(tools)
-
-workflow = StateGraph(AgentState)
-
-#Nodes
-workflow.add_node("search", search_node)
-workflow.add_node("tools", tool_node)
-workflow.add_node("outliner", outliner_node)
-workflow.add_node("writer", writer_node)
-
-#Edges
-workflow.set_entry_point("search")
-workflow.add_conditional_edges(
-    "search",
-    should_search,
-)
-workflow.add_edge("tools", 'search')
-workflow.add_edge("outliner", "writer")
-workflow.add_edge("writer", END)
-
-graph = workflow.compile()
-
-question = "Write a review about movie cars 2"
-input_message = HumanMessage(content=question)
-
-
-for event in graph.stream({"messages": [input_message]}, stream_mode="values"):
-  event['messages'][-1].pretty_print()
+if __name__ == "__main__":
+    main()

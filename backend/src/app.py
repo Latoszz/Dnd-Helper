@@ -4,11 +4,10 @@ from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain.text_splitter import SentenceTransformersTokenTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from config_manager import ConfigManager
-
+from backend.src.config_manager import ConfigManager
 
 def create_vector_store(recreate=False):
-    config = ConfigManager("src/config.yaml")
+    config = ConfigManager("../../backend/src/config.yaml")
     index_name = config.get_value("vector_store")
     embeddings = HuggingFaceEmbeddings(
         model_name="BAAI/bge-large-en-v1.5",
@@ -53,4 +52,4 @@ def create_vector_store(recreate=False):
 
 
 if __name__ == "__main__":
-    create_vector_store(recreate=True)
+    create_vector_store()

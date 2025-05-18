@@ -1,0 +1,4 @@
+app:
+  title: DnD-Helper
+app_title: DnD-Helper
+env_path: config/.env
