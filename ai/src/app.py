@@ -1,22 +1,12 @@
 from ai.src.agents.agent_factory import AgentFactory
 from ai.src.managers.config_manager import Config
+from ai.src.services.workflow_service import WorkflowService
 from backend.src.app import create_vector_store
 
-from typing_extensions import TypedDict
-from typing import Literal, Annotated
-import functools
-
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import AnyMessage, HumanMessage
+from langchain_core.messages import HumanMessage
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain.tools.retriever import create_retriever_tool
-
-from langgraph.graph import StateGraph
-from langgraph.prebuilt import ToolNode
-from langgraph.graph.message import add_messages
-
-class AgentState(TypedDict):
-  messages: Annotated[list, add_messages]
 
 
 def main():
@@ -28,7 +18,7 @@ def main():
         temperature=config_obj.temperature
     )
 
-    question = "How to make the most powerful fireball"
+    question = input('Your question: ')
 
     retriever = create_vector_store().as_retriever()
     retriever_tool = create_retriever_tool(
@@ -44,28 +34,7 @@ def main():
         "writer": agent_factory.create_agent("writer"),
     }
 
-    search_agent = agents['search']
-    writer_agent = agents['writer']
-
-    search_node = functools.partial(agent_node, agent=search_agent, name="Search Agent")
-    writer_node = functools.partial(agent_node, agent=writer_agent, name="Writer Agent")
-    tool_node = ToolNode(tools)
-
-    workflow = StateGraph(AgentState)
-
-    # Nodes
-    workflow.add_node("search", search_node)
-    workflow.add_node("tools", tool_node)
-    workflow.add_node("writer", writer_node)
-
-    # Edges
-    workflow.set_entry_point("search")
-    workflow.add_conditional_edges(
-        "search",
-        should_search,
-    )
-    workflow.add_edge("tools", 'search')
-    workflow.set_finish_point("writer")
+    workflow = WorkflowService(agents, tools).build()
 
     graph = workflow.compile()
 
@@ -73,21 +42,6 @@ def main():
 
     for event in graph.stream({"messages": [input_message]}, stream_mode="values"):
         event['messages'][-1].pretty_print()
-
-def agent_node(state, agent, name):
-  result = agent.invoke(state)
-  return {
-      'messages': [result]
-  }
-
-def should_search(state) -> Literal["tools", "writer"]:
-    messages = state['messages']
-    last_message = messages[-1]
-    # If the LLM makes a tool call, then we route to the "tools" node
-    if last_message.tool_calls:
-        return "tools"
-    # Otherwise, we stop (reply to the user)
-    return "writer"
 
 if __name__ == "__main__":
     main()
