@@ -6,7 +6,7 @@ from services.service import BackendService
 
 
 config_manager = ConfigManager("config.yml")
-config = config_manager.get_config().get('app',{})
+config = config_manager.get_config().get('app')
 
 service = BackendService(config_manager)
 
@@ -22,11 +22,25 @@ class FrontendApp:
     def _initialize_session_state(self):
         if "messages" not in st.session_state:
             st.session_state.messages = []
-
+        if "ai_model" not in st.session_state:
+            st.session_state.ai_model = config.get('default_model')
 
     def display_sidebar(self):
         with st.sidebar:
-            select_model = st.selectbox(config.get('default_model'),(config.get('models')))
+            st.title(config.get('settings_title'))
+
+            # Model selection
+            available_models = config.get('ai_models')
+            model = st.selectbox(
+                "Select model",
+                available_models)
+
+            #if model != st.session_state.ai_model:
+            #     st.session_state.ai_model = model
+
+            # Clear chat button
+           # if st.button("Clear chat"):
+           #     st.rerun()
 
     def display_chat(self):
         for message in st.session_state.messages:
@@ -51,7 +65,7 @@ class FrontendApp:
     def run(self):
         #st.title(config.get('echo'))
         st.title("Echo bot")
-        #st.sidebar()
+        self.display_sidebar()
         self.display_chat()
 
 

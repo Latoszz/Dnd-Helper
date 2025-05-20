@@ -6,8 +6,11 @@ backend:
   timeout: 30
 
 app:
-  app_title: 'test_app_title',
-  title: "AI Chatbot",
-  layout: wide,
+  app_title: 'test_app_title'
+  title: "AI Chatbot"
+  layout: wide
   default_model: 'gemini-flash-2.0'
-  models: ['gpt4', 'gemini-flash-2.0']
+  ai_models:
+    - gpt4,
+    - gemini-flash-2.0
+  settings_title: 'Settings'
