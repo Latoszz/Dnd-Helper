@@ -8,4 +8,6 @@ backend:
 app:
   app_title: 'test_app_title',
   title: "AI Chatbot",
-  layout: wide
+  layout: wide,
+  default_model: 'gemini-flash-2.0'
+  models: ['gpt4', 'gemini-flash-2.0']
