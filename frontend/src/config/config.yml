@@ -1,0 +1,10 @@
+backend:
+  base_url: "http://localhost:5000"
+  endpoints:
+    ex1: "ex1"
+    ex2: "ex2"
+
+app: { title: "AI Chatbot", layout: wide }
+
+app_title: My New Chtabot App
+chat_placeholder: Hi, how can I help you?
