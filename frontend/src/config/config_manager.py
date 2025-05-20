@@ -30,11 +30,13 @@ class ConfigManager:
             'api_key_env_var': 'OPENAI_API_KEY_TEG',
             'app': {
                 'title': 'AI Chatbot',
-                'layout': 'wide'
+                'layout': 'wide',
+                'app_title': 'My ChatBot'
             },
-            'default_model': 'gpt-4o-mini',
+            'backend': {
+                'default_model': 'gpt-4o-mini',
+            },
             'available_models': ['gpt-4o-mini', 'gpt-3.5-turbo'],
-            'app_title': 'My ChatBot',
             'chat_placeholder': 'Hi, how can I help you?'
         }
 
