@@ -2,6 +2,7 @@ import yaml
 from dotenv import load_dotenv
 import os
 
+
 class Config:
     def __init__(self):
         # Load environment variables from .env file
@@ -18,8 +19,13 @@ class Config:
     def _load_yaml_config(self):
         config_path = os.path.join(os.path.dirname(__file__), "../config/config.yml")
         try:
-            with open(config_path, 'r') as file:
+            with open(config_path, "r") as file:
                 yaml_config = yaml.safe_load(file)
                 self.yaml_config = yaml_config  # Store YAML data as a dictionary
         except FileNotFoundError:
-            raise FileNotFoundError(f"Config file not found at {config_path}. Please check the path.")
+            raise FileNotFoundError(
+                f"Config file not found at {config_path}. Please check the path."
+            )
+
+    def get_value(self, key: str):
+        return self.yaml_config[key]

@@ -1,2 +1,0 @@
-documents_path: backend/src/assets
-vector_store: ../../backend/src/assets/index/faiss_index

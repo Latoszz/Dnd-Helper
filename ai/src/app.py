@@ -1,47 +1,56 @@
-from ai.src.agents.agent_factory import AgentFactory
-from ai.src.managers.config_manager import Config
-from ai.src.services.workflow_service import WorkflowService
-from backend.src.app import create_vector_store
-
-from langchain_openai import ChatOpenAI
+from typing import cast
+from fastapi import FastAPI
+from pydantic import BaseModel
+from contextlib import asynccontextmanager
+from langchain.vectorstores.base import VectorStoreRetriever
+from langgraph.graph.state import CompiledStateGraph
 from langchain_core.messages import HumanMessage
-from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain.tools.retriever import create_retriever_tool
+from managers.config_manager import Config
+from services.vector_store_service import create_vector_store
+from services.graph_service import build_graph
+import logging
 
 
-def main():
-    config_obj = Config()
+class Query(BaseModel):
+    question: str
 
-    llm = ChatOpenAI(
-        openai_api_key=config_obj.key,
-        model=config_obj.model,
-        temperature=config_obj.temperature
-    )
 
-    question = input('Your question: ')
+def get_retriever() -> VectorStoreRetriever:
+    return cast(VectorStoreRetriever, app.state.retriever)
 
-    retriever = create_vector_store().as_retriever()
-    retriever_tool = create_retriever_tool(
-        retriever,
-        "retrieve_dnd",
-        "Search and return information about dungeons and dragons",
-    )
-    tools = [retriever_tool, TavilySearchResults(max_results=5)]
-    agent_factory = AgentFactory(llm, tools)
 
-    agents = {
-        "search": agent_factory.create_agent("search"),
-        "writer": agent_factory.create_agent("writer"),
-    }
+def get_langgraph() -> CompiledStateGraph:
+    return cast(CompiledStateGraph, app.state.graph)
 
-    workflow = WorkflowService(agents, tools).build()
 
-    graph = workflow.compile()
+config = Config()
 
-    input_message = HumanMessage(content=question)
+logger = logging.getLogger("uvicorn.error")
+logger.setLevel(logging.DEBUG)
 
-    for event in graph.stream({"messages": [input_message]}, stream_mode="values"):
-        event['messages'][-1].pretty_print()
 
-if __name__ == "__main__":
-    main()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting up")
+    app.state.retriever = create_vector_store(config=config).as_retriever()
+    app.state.graph = build_graph(get_retriever())
+    yield
+    logger.info("Shutting down")
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+@app.post("/embed")
+async def embed():
+    app.state.retriver = create_vector_store(
+        recreate=True, config=config
+    ).as_retriever()
+    return {"message": "Vector Store has been updated"}
+
+
+@app.post("/generate")
+async def generate(query: Query):
+    graph = get_langgraph()
+    input_message = HumanMessage(content=query.question)
+    return {"result": graph.invoke(input_message)}
