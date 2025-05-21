@@ -29,6 +29,7 @@ class Config:
             "env_path": "config/.env",
             "app": {"title": "DnD-Helper"},
             "app_title": "DnD-Helper",
+            "ai_service_link": "http://127.0.0.1:9000"
         }
 
         # Try to load config file
@@ -45,11 +46,11 @@ class Config:
                     f"Config file not found at {self.config_path}, using default values"
                 )
                 # Create directories if they don't exist
-                os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+                # os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
 
                 # Save default config
-                with open(self.config_path, "w") as file:
-                    yaml.dump(default_config, file, default_flow_style=False)
+                # with open(self.config_path, "w") as file:
+                #    yaml.dump(default_config, file, default_flow_style=False)
 
         except Exception as e:
             print(f"Error loading config: {e}")

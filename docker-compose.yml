@@ -1,21 +1,21 @@
 version: "3.8"
 
 services:
-  frontend:
+
+
+  ai:
     build:
-      context: frontend
-      dockerfile: frontend/Dockerfile
+      context: ai
+      dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "5000:8000"
     volumes:
-      - ./frontend:/app
-    depends_on:
-      - backend
+      - ./ai:/app
 
   backend:
     build:
       context: backend
-      dockerfile: backend/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "4000:8000"
     volumes:
@@ -23,14 +23,18 @@ services:
     depends_on:
       - ai
 
-  ai:
+  frontend:
     build:
-      context: ai
-      dockerfile: ai/Dockerfile
+      context: frontend
+      dockerfile: Dockerfile
     ports:
-      - "5000:8000"
+      - "3000:3000"
     volumes:
-      - ./ai:/app
+      - ./frontend:/app
+    depends_on:
+      - backend
+
+
 
 networks:
   default:
