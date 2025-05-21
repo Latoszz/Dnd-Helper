@@ -4,7 +4,7 @@ import yaml
 from typing import Dict, Any, Optional
 
 
-class ConfigManager:
+class Config:
     """Configuration manager for the chatbot application"""
 
     def __init__(self, config_path: str):

@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   frontend:
@@ -17,7 +17,7 @@ services:
       context: backend
       dockerfile: backend/Dockerfile
     ports:
-      - "4000:4000"
+      - "4000:8000"
     volumes:
       - ./backend:/app
     depends_on:
@@ -28,7 +28,7 @@ services:
       context: ai
       dockerfile: ai/Dockerfile
     ports:
-      - "5000:5000"
+      - "5000:8000"
     volumes:
       - ./ai:/app
 

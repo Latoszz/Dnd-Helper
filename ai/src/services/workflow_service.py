@@ -1,8 +1,9 @@
 from langgraph.prebuilt import ToolNode
 from langgraph.graph import StateGraph
-from ai.src.agents.agent_state import AgentState
+from agents.agent_state import AgentState
 import functools
 from typing import Literal
+
 
 class WorkflowService:
     def __init__(self, agents, tools):
@@ -12,14 +13,20 @@ class WorkflowService:
 
     def _create_agent_node(self, state, agent, name):
         result = agent.invoke(state)
-        return {
-            'messages': [result]
-        }
+        return {"messages": [result]}
 
     def _setup_nodes(self):
         nodes = {
-            "search": functools.partial(self._create_agent_node, agent=self.agents['search'], name="Search Agent"),
-            "writer": functools.partial(self._create_agent_node, agent=self.agents['writer'], name="Writer Agent"),
+            "search": functools.partial(
+                self._create_agent_node,
+                agent=self.agents["search"],
+                name="Search Agent",
+            ),
+            "writer": functools.partial(
+                self._create_agent_node,
+                agent=self.agents["writer"],
+                name="Writer Agent",
+            ),
             "tools": ToolNode(self.tools),
         }
 
@@ -41,7 +48,7 @@ class WorkflowService:
         self.workflow.set_finish_point("writer")
 
     def _should_search(self, state) -> Literal["tools", "writer"]:
-        messages = state['messages']
+        messages = state["messages"]
         last_message = messages[-1]
         # If the LLM makes a tool call, then we route to the "tools" node
         if last_message.tool_calls:
