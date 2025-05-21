@@ -1,55 +1,46 @@
-import os
-import torch.cuda
-from langchain_community.document_loaders import PyPDFDirectoryLoader
-from langchain.text_splitter import SentenceTransformersTokenTextSplitter
-from langchain_community.vectorstores import FAISS
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from backend.src.config_manager import ConfigManager
+from fastapi import FastAPI, Request
+from contextlib import asynccontextmanager
+from httpx import AsyncClient
+import logging
+from models.resuest import Request
+from managers.config_manager import Config
 
-def create_vector_store(recreate=False):
-    config = ConfigManager("../../backend/src/config.yaml")
-    index_name = config.get_value("vector_store")
-    embeddings = HuggingFaceEmbeddings(
-        model_name="BAAI/bge-large-en-v1.5",
-        model_kwargs={"device": "cuda" if torch.cuda.is_available() else "cpu"},
-        encode_kwargs={"normalize_embeddings": True},
+
+config = Config("src/config/config.yaml")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # logging.info("Starting up")
+    # logging.info(config.config)
+    app.state.client = AsyncClient(
+        base_url=config.get_value("ai_service_link"), timeout=60.0
     )
-
-    print(f"Looking for index {index_name}")
-    if index_name is not None and os.path.exists(index_name) and not recreate:
-        print("Vector store detected")
-        db = FAISS.load_local(
-            index_name, embeddings, allow_dangerous_deserialization=True
-        )
-        return db
-
-    if recreate:
-        print("Creating new index")
-
-    doc_path = config.get_value("documents_path")
-    if doc_path is None:
-        doc_path = input("Please provide path to the documents: ")
-
-    loader = PyPDFDirectoryLoader(path=doc_path)
-
-    text_splitter = SentenceTransformersTokenTextSplitter(
-        model_name="BAAI/bge-large-en-v1.5", chunk_size=384, chunk_overlap=30
-    )
-
-    documents = loader.load_and_split(text_splitter)
-    print("Loaded and split the documents")
-
-    print(
-        torch.cuda.get_device_name(0)
-        if torch.cuda.is_available()
-        else "No GPU detected"
-    )
-
-    db = FAISS.from_documents(documents, embeddings)
-    db.save_local(index_name)
-    print(f"Saved index: {index_name}")
-    return db
+    yield
+    # logging.info("Shutting down")
+    await app.state.client.aclose()
 
 
-if __name__ == "__main__":
-    create_vector_store()
+app = FastAPI(lifespan=lifespan)
+
+
+def get_http_client() -> AsyncClient:
+    return app.state.client
+
+
+@app.post("/chat")
+async def chit_chat(request: Request):
+    client = get_http_client()
+    response = await client.post(url="/generate", json={"question": request.question})
+    data = response.json()
+    if response.status_code == 500:
+        return {
+            "message": "Currently we have internal issues :)",
+            "detail": data["detail"],
+        }
+
+    ai_responses = [
+        msg["content"] for msg in data["messages"] if msg.get("type") == "ai"
+    ]
+    last_two_responses = ai_responses[-2:] if len(ai_responses) >= 2 else ai_responses
+    return {"answer": "\n\n".join(last_two_responses)}
