@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Expose port (if your app uses a specific port)
-EXPOSE 8000
+EXPOSE 9000
 
 # Run the application
 CMD ["fastapi", "run", "src.app"]
