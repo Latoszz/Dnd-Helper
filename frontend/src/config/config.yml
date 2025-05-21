@@ -1,8 +1,8 @@
 backend:
-  base_url: "http://localhost:5000"
+  base_url: "http://127.0.0.1:8000"
   endpoints:
-    ex1: "/ex1/"
-    ex2: "/ex2/"
+    docs: "/docs"
+    chat: "/chat"
   timeout: 30
 
 app:
@@ -11,6 +11,6 @@ app:
   layout: wide
   default_model: 'gemini-flash-2.0'
   ai_models:
-    - gpt4,
+    - gpt4
     - gemini-flash-2.0
   settings_title: 'Settings'

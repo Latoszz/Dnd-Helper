@@ -52,7 +52,7 @@ class ConfigManager:
             else:
                 print(f"Config file not found at {self.config_path}, using default values")
                 # Create directories if they don't exist
-                os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+                # os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
 
                 # Save default config
                 with open(self.config_path, 'w') as file:
@@ -125,7 +125,7 @@ class ConfigManager:
             config_to_save = config if config is not None else self.config
 
             # Create directories if they don't exist
-            os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+            # os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
 
             with open(self.config_path, 'w') as file:
                 yaml.dump(config_to_save, file, default_flow_style=False)

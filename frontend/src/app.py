@@ -1,18 +1,18 @@
-import os
+import asyncio
 import streamlit as st
-from dotenv import load_dotenv
 from config.config_manager import ConfigManager
 from services.service import BackendService
 
-
-config_manager = ConfigManager("config.yml")
+config_manager = ConfigManager("frontend/src/config/config.yml")
 config = config_manager.get_config().get('app')
 
 service = BackendService(config_manager)
 
+
 class FrontendApp:
 
     def __init__(self):
+
         st.set_page_config(
             page_title=config.get('title'),
             layout=config.get('layout')
@@ -31,7 +31,7 @@ class FrontendApp:
 
             # Model selection
             available_models = config.get('ai_models')
-            model = st.selectbox(
+            st.session_state.ai_model = st.selectbox(
                 "Select model",
                 available_models)
 
@@ -47,24 +47,30 @@ class FrontendApp:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
-        if prompt := st.chat_input("What is up?"):
-            # Display user message in chat message container
-            with st.chat_message("user"):
-                st.markdown(prompt)
-            # Add user message to chat history
-            st.session_state.messages.append({"role": "user", "content": prompt})
+        prompt = st.chat_input()
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        st.session_state.messages.append({"role": "user", "content": prompt})
 
-        response = f"Echo: {prompt}"
-        # Display assistant response in chat message container
+        try:
+            response_data = asyncio.run(
+                service.post_data('chat', {'question': prompt
+                  ######################
+                  # here should be an option to add additional info to the post, but the Request dto doesnt respect that
+                  #, 'model': st.session_state.ai_model
+                                           })
+            )
+            response = f"{response_data}"
+        except Exception as e:
+            response = f"Error: {str(e)}"
+
         with st.chat_message("assistant"):
             st.markdown(response)
-        # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
 
 
     def run(self):
-        #st.title(config.get('echo'))
-        st.title("Echo bot")
+        st.title("DnD bot")
         self.display_sidebar()
         self.display_chat()
 
