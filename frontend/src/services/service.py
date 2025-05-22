@@ -37,7 +37,7 @@ class BackendService:
                     timeout=self.config['timeout']
                 )
                 response.raise_for_status()
-                return response.json()
+                return response.json()['message']
         except (httpx.HTTPError, json.JSONDecodeError) as e:
             print(f"Error posting data: {e}")
             raise HTTPException(

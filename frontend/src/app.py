@@ -26,6 +26,8 @@ class FrontendApp:
             st.session_state.messages = []
         if "ai_model" not in st.session_state:
             st.session_state.ai_model = config.get('default_model')
+        if "temperature" not in st.session_state:
+            st.session_state.temperature = 1
 
     def display_sidebar(self):
         with st.sidebar:
@@ -45,6 +47,7 @@ class FrontendApp:
                  index = default_model_index,
                  format_func= lambda x: x['model']
             )
+            st.session_state.temperature = st.slider(label="temperature",min_value=0.0,max_value=2.0,step=0.05)
 
 
 
@@ -63,13 +66,15 @@ class FrontendApp:
             try:
                 print({'question': prompt,
                         'model': st.session_state.ai_model['model'],
-                        'company': st.session_state.ai_model['company']})
+                        'company': st.session_state.ai_model['company'],
+                         'temperature': st.session_state.temperature})
                 response_data = asyncio.run(
                     service
                     .post_data('chat', {
                         'question': prompt,
                         'model': st.session_state.ai_model['model'],
-                        'company': st.session_state.ai_model['company']
+                        'company': st.session_state.ai_model['company'],
+                        'temperature': st.session_state.temperature
                     })
                 )
                 response = f"{response_data}"
