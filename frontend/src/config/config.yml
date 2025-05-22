@@ -9,8 +9,12 @@ app:
   app_title: 'test_app_title'
   title: "AI Chatbot"
   layout: wide
-  default_model: 'gemini-flash-2.0'
+  default_model:
+    - model: 'gemini-flash-2.0'
+      company: 'google'
   ai_models:
-    - gpt4
-    - gemini-flash-2.0
+    - model: 'gpt-4o-mini'
+      company: 'openai'
+    - model: 'gemini-flash-2.0'
+      company: 'google'
   settings_title: 'Settings'
