@@ -1,6 +1,7 @@
+from agents.agent_state import AgentState
 from langgraph.prebuilt import ToolNode
 from langgraph.graph import StateGraph
-from agents.agent_state import AgentState
+from langchain_core.messages import AIMessage
 import functools
 from typing import Literal
 
@@ -13,19 +14,24 @@ class WorkflowService:
 
     def _create_agent_node(self, state, agent, name):
         result = agent.invoke(state)
-        return {"messages": [result]}
+
+        if isinstance(result, AIMessage):
+            result.name = name
+            return {"messages": [result]}
+
+        return {"messages": [AIMessage(content=result.content, tool_calls=result.tool_calls, name=name)]}
 
     def _setup_nodes(self):
         nodes = {
             "search": functools.partial(
                 self._create_agent_node,
                 agent=self.agents["search"],
-                name="Search Agent",
+                name="Search_Agent",
             ),
             "writer": functools.partial(
                 self._create_agent_node,
                 agent=self.agents["writer"],
-                name="Writer Agent",
+                name="Writer_Agent",
             ),
             "tools": ToolNode(self.tools),
         }
