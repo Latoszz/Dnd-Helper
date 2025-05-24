@@ -2,12 +2,11 @@ langchain
 langchain_core
 langchain_community
 langchain-openai
-langchain-huggingface
+langchain-google-genai
 langgraph
-sentence-transformers
 pypdf
-faiss-cpu
-torch
+psycopg[binary]
+psycopg2-binary
 pydantic
 fastapi
 fastapi[standard]

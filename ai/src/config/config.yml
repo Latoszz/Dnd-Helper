@@ -1,2 +1,6 @@
 documents_path: src/assets
-vector_store: src/assets/index/faiss_index
+model_name: "models/text-embedding-004"
+vector_store:
+  conn_str: "no_free_database"
+  namespace: "dnd-teg"
+  collection_name: "dnd-embeddings"

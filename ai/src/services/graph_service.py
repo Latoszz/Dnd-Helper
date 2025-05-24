@@ -14,6 +14,7 @@ def build_graph(retriever: BaseRetriever):
         openai_api_key=config_obj.key,
         model=config_obj.model,
         temperature=config_obj.temperature,
+        use_responses_api=True,
     )
 
     retriever_tool = create_retriever_tool(

@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
 from httpx import AsyncClient
-import logging
 from models.resuest import Request
 from managers.config_manager import Config
 
@@ -22,6 +21,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+FastAPI(lifespan=lifespan)
 
 
 def get_http_client() -> AsyncClient:
