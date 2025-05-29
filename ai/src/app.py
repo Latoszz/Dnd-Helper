@@ -1,8 +1,12 @@
+import asyncio
 from typing import cast
 from fastapi import FastAPI, HTTPException
 import logging
 from contextlib import asynccontextmanager
+
+from langchain.chains.question_answering.map_reduce_prompt import messages
 from langchain.vectorstores.base import VectorStoreRetriever
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph.state import CompiledStateGraph
 from langchain_core.messages import HumanMessage
 from managers.config_manager import Config
@@ -50,11 +54,26 @@ async def embed():
 async def generate(query: Query):
     graph = get_langgraph()
     input_message = HumanMessage(content=query.question)
+
+    # runnable_config = RunnableConfig(
+    #     configurable={
+    #         "provider": query.provider,
+    #         "model": query.model,
+    #         "temperature": query.temperature,
+    #     }
+    # )
     logger.info(input_message)
-    try:
-        return graph.invoke({"messages": [input_message]}, stream_mode="values")
-    except Exception as err:
-        logger.error(err)
-        raise HTTPException(
-            status_code=500, detail="You dont have enough of tokens or you messed up :0"
-        )
+
+    return graph.invoke({"messages": [input_message]})
+    # return graph.with_config(
+    #     configurable={
+    #         "provider": query.provider,
+    #         "model": query.model,
+    #         "temperature": query.temperature,
+    #     }
+    # ).invoke({"messages": [input_message]})
+
+
+if __name__ == "__main__":
+    query=Query(question="What is your name?", provider="google_genai", model="gemini-flash-2.0", temperature=0.5)
+    print(asyncio.run(generate(query)))

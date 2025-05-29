@@ -11,10 +11,10 @@ app:
   layout: wide
   default_model:
     - model: 'gemini-flash-2.0'
-      company: 'google'
+      provider: 'google_genai'
   ai_models:
     - model: 'gpt-4o-mini'
-      company: 'openai'
+      provider: 'openai'
     - model: 'gemini-flash-2.0'
-      company: 'google'
+      provider: 'google_genai'
   settings_title: 'Settings'

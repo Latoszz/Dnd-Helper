@@ -16,6 +16,7 @@ def create_vector_store(config: Config, recreate=False):
     )
 
     print(f"Looking for index {index_name}")
+    print(os.path.abspath(index_name))
     if index_name is not None and os.path.exists(index_name) and not recreate:
         print("Vector store detected")
         db = FAISS.load_local(

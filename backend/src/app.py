@@ -1,8 +1,9 @@
+from adodbapi.examples.db_table_names import provider
 from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
 from httpx import AsyncClient
 import logging
-from models.resuest import Request
+from models.request import Request
 from managers.config_manager import Config
 
 
@@ -31,7 +32,13 @@ def get_http_client() -> AsyncClient:
 @app.post("/chat")
 async def chit_chat(request: Request):
     client = get_http_client()
-    response = await client.post(url="/generate", json={"question": request.question})
+    response = await client.post(url="/generate",
+                                 json={
+                                     "question": request.question,
+                                     "provider": request.provider,
+                                     "model": request.model,
+                                     "temperature": request.temperature
+                                 })
     data = response.json()
     if response.status_code == 500:
         return {

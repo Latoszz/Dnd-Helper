@@ -1,2 +1,2 @@
 documents_path: src/assets
-vector_store: src/assets/index/faiss_index
+vector_store: D:\PROGRAMMING\TEG\Project\Dnd-Helper\ai\src\assets\index\faiss_index

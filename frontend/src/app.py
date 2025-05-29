@@ -66,14 +66,14 @@ class FrontendApp:
             try:
                 print({'question': prompt,
                         'model': st.session_state.ai_model['model'],
-                        'company': st.session_state.ai_model['company'],
+                        'provider': st.session_state.ai_model['provider'],
                          'temperature': st.session_state.temperature})
                 response_data = asyncio.run(
                     service
                     .post_data('chat', {
                         'question': prompt,
                         'model': st.session_state.ai_model['model'],
-                        'company': st.session_state.ai_model['company'],
+                        'provider': st.session_state.ai_model['provider'],
                         'temperature': st.session_state.temperature
                     })
                 )

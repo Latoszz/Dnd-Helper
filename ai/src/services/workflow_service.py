@@ -1,9 +1,9 @@
-from agents.agent_state import AgentState
 from langgraph.prebuilt import ToolNode
 from langgraph.graph import StateGraph
 from langchain_core.messages import AIMessage
 import functools
 from typing import Literal
+from langgraph.prebuilt.chat_agent_executor import AgentState
 
 
 class WorkflowService:

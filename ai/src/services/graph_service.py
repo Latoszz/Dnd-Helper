@@ -29,7 +29,3 @@ def build_graph(retriever: BaseRetriever):
     graph = workflow.compile()
 
     return graph
-
-
-if __name__ == "__main__":
-    build_graph()
