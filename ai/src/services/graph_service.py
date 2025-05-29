@@ -1,30 +1,26 @@
-from managers.config_manager import Config
-from factories.tool_factory import ToolFactory
-from factories.agent_factory import AgentFactory
-from services.workflow_service import WorkflowService
-from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage
+
+from ai.src.managers.config_manager import Config
+from ai.src.factories.tool_factory import ToolFactory
+from ai.src.factories.agent_factory import AgentFactory
+from ai.src.factories.llm_factory import LLMFactory
+from ai.src.services.vector_store_service import create_vector_store
+from ai.src.services.workflow_service import WorkflowService
 from langchain_core.retrievers import BaseRetriever
 
+config_obj = Config()
+retriever = create_vector_store(config=config_obj).as_retriever()
 
 def build_graph(retriever: BaseRetriever):
-    config_obj = Config()
 
-    llm = ChatOpenAI(
-        openai_api_key=config_obj.key,
-        model=config_obj.model,
-        temperature=config_obj.temperature,
-    )
+    llm_factory = LLMFactory(config_obj)
 
     tool_factory = ToolFactory(retriever)
     tools = tool_factory.create_tools()
-    agent_factory = AgentFactory(llm, tools)
 
-    agents = {
-        "search": agent_factory.create_agent("search"),
-        "writer": agent_factory.create_agent("writer"),
-    }
+    agent_factory = AgentFactory(llm_factory, tools)
 
-    workflow = WorkflowService(agents, tools).build()
+    workflow = WorkflowService(agent_factory, tools).build()
 
     graph = workflow.compile()
 
@@ -32,4 +28,12 @@ def build_graph(retriever: BaseRetriever):
 
 
 if __name__ == "__main__":
-    build_graph()
+    graph = build_graph(retriever)
+
+    query = {
+        "messages": HumanMessage(content="How to start"),
+        "model": "gpt-4o-mini",
+        "temperature": 0.5,
+    }
+
+    graph.invoke(query)
