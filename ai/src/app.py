@@ -48,19 +48,11 @@ async def embed():
 
 @app.post("/generate")
 async def generate(query: Query):
+    graph = get_langgraph()
+    input_message = HumanMessage(content=query.question)
+    logger.info(input_message)
     try:
-        graph = get_langgraph()
-        input_message = HumanMessage(content=query.question)
-
-        state = {
-            "messages": [input_message],
-            "model": query.model,
-            "temperature": query.temperature,
-        }
-
-        logger.info(input_message)
-
-        return graph.invoke(state)
+        return graph.invoke({"messages": [input_message]}, stream_mode="values")
     except Exception as err:
         logger.error(err)
         raise HTTPException(

@@ -9,14 +9,12 @@ class Config:
         load_dotenv()
 
         # Load values from environment variables
-        self.open_ai_key = os.getenv(
+        self.key = os.getenv(
             "OPENAI_API_KEY_TEG",
             "<insert your OPENAI KEY here, or make an env variable>",
         )
-        self.gemini_key = os.getenv(
-            "GEMINI_API_KEY_TEG",
-            "<insert your GEMINI KEY here, or make an env variable>",
-        )
+        self.model = os.getenv("MODEL", "gpt-4o-mini")
+        self.temperature = float(os.getenv("TEMPERATURE", 0))
 
         # Load additional configurations from config.yml
         self._load_yaml_config()

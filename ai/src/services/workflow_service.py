@@ -1,4 +1,4 @@
-from ai.src.agents.agent_state import AgentState
+from agents.agent_state import AgentState
 from langgraph.prebuilt import ToolNode
 from langgraph.graph import StateGraph
 from langchain_core.messages import AIMessage
@@ -7,16 +7,37 @@ from typing import Literal
 
 
 class WorkflowService:
-    def __init__(self, agent_factory, tools):
-        self.agent_factory = agent_factory
+    def __init__(self, agents, tools):
+        self.agents = agents
         self.tools = tools
         self.workflow = StateGraph(AgentState)
 
-    def _setup_nodes(self):
-        self.workflow.add_node("search", self.agent_factory.create_agent_node("search"))
-        self.workflow.add_node("writer", self.agent_factory.create_agent_node("writer"))
-        self.workflow.add_node("tools", ToolNode(self.tools))
+    def _create_agent_node(self, state, agent, name):
+        result = agent.invoke(state)
 
+        if isinstance(result, AIMessage):
+            result.name = name
+            return {"messages": [result]}
+
+        return {"messages": [AIMessage(content=result.content, tool_calls=result.tool_calls, name=name)]}
+
+    def _setup_nodes(self):
+        nodes = {
+            "search": functools.partial(
+                self._create_agent_node,
+                agent=self.agents["search"],
+                name="Search_Agent",
+            ),
+            "writer": functools.partial(
+                self._create_agent_node,
+                agent=self.agents["writer"],
+                name="Writer_Agent",
+            ),
+            "tools": ToolNode(self.tools),
+        }
+
+        for name, node in nodes.items():
+            self.workflow.add_node(name, node)
 
     def _setup_edges(self):
         self.workflow.set_entry_point("search")

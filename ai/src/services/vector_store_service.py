@@ -4,7 +4,7 @@ from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain.text_splitter import SentenceTransformersTokenTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from ai.src.managers.config_manager import Config
+from managers.config_manager import Config
 
 
 def create_vector_store(config: Config, recreate=False):
