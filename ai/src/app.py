@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from typing import cast
 from fastapi import FastAPI, HTTPException
 from fastapi import UploadFile
@@ -69,10 +70,22 @@ async def generate(query: Query):
     graph = get_langgraph()
     input_message = HumanMessage(content=query.question)
     logger.info(input_message)
-    try:
-        return await graph.ainvoke({"messages": [input_message]}, stream_mode="values")
-    except Exception as err:
-        logger.error(err)
-        raise HTTPException(
-            status_code=500, detail="You dont have enough of tokens or you messed up :0"
-        )
+
+    initialised_graph = graph.with_config(
+        configurable={
+            "provider": query.provider,
+            "model": query.model,
+            "temperature": query.temperature,
+        }
+    )
+    return await initialised_graph.ainvoke({"messages": [input_message]})
+
+
+if __name__ == "__main__":
+    query = Query(
+        question="What is your name?",
+        provider="google_genai",
+        model="gemini-flash-2.0",
+        temperature=0.5,
+    )
+    print(asyncio.run(generate(query)))

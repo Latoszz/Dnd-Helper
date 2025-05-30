@@ -1,8 +1,9 @@
 from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
 from httpx import AsyncClient
-from models.resuest import Request
+from models.request import Query
 from managers.config_manager import Config
+import logging
 
 
 config = Config("src/config/config.yaml")
@@ -30,10 +31,20 @@ def get_http_client() -> AsyncClient:
 
 
 @app.post("/chat")
-async def chit_chat(request: Request):
+async def chit_chat(request: Query):
     client = get_http_client()
-    response = await client.post(url="/generate", json={"question": request.question})
+    response = await client.post(
+        url="/generate",
+        json={
+            "question": request.question,
+            "provider": request.provider,
+            "model": request.model,
+            "temperature": request.temperature,
+        },
+    )
+    logging.info(response)
     data = response.json()
+    logging.info(data)
     if response.status_code == 500:
         return {
             "message": "Currently we have internal issues :)",
@@ -44,4 +55,4 @@ async def chit_chat(request: Request):
         msg["content"] for msg in data["messages"] if msg.get("type") == "ai"
     ]
     last_two_responses = ai_responses[-2:] if len(ai_responses) >= 2 else ai_responses
-    return {"answer": "\n\n".join(last_two_responses)}
+    return {"message": "\n\n".join(last_two_responses)}
