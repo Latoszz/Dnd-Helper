@@ -1,6 +1,7 @@
+import logging
 from typing import cast
 from fastapi import FastAPI, HTTPException
-import logging
+from fastapi import UploadFile
 from contextlib import asynccontextmanager
 from langgraph.graph.state import CompiledStateGraph
 from langchain_core.messages import HumanMessage
@@ -26,7 +27,9 @@ logger.setLevel(logging.DEBUG)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting up")
-    app.state.vector_store_service = VectorStoreService(config=config)
+    app.state.vector_store_service = await VectorStoreService.create(
+        config=config, to_reembed=False
+    )
     app.state.graph = build_graph(get_vector_store_service().as_retriever())
     logger.info(get_langgraph().get_graph().draw_mermaid())
     yield
@@ -37,11 +40,21 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.post("/embed")
-async def embed():
+async def embed(file: UploadFile):
     try:
+        vector_store = get_vector_store_service()
+        match file.content_type:
+            case "text/plain":
+                file_type = ".txt"
+            case "application/pdf":
+                file_type = ".pdf"
+            case _:
+                logger.error("Not allowed file type")
+                raise HTTPException(status_code=400, detail="Invalid file type")
+        result = await vector_store.save_file_to_vector_store(file, file_type)
         return {
             "message": "Vector Store has been updated",
-            "details": get_vector_store_service().add_to_vector_store(),
+            "details": result,
         }
     except Exception as err:
         logger.error(err)
@@ -57,7 +70,7 @@ async def generate(query: Query):
     input_message = HumanMessage(content=query.question)
     logger.info(input_message)
     try:
-        return graph.invoke({"messages": [input_message]}, stream_mode="values")
+        return await graph.ainvoke({"messages": [input_message]}, stream_mode="values")
     except Exception as err:
         logger.error(err)
         raise HTTPException(

@@ -1,21 +1,31 @@
 import os
-from collections import Counter
+import tempfile
+from fastapi import UploadFile
+from sqlalchemy.ext.asyncio import create_async_engine
 from langchain.vectorstores import VectorStore
 from langchain_core.vectorstores.base import BaseRetriever
+from langchain_core.documents.base import Document
 from langchain_postgres.vectorstores import PGVector
-from langchain.indexes import index
+from langchain.indexes import aindex
 from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
 from langchain.indexes import SQLRecordManager
-from managers.config_manager import Config
 from langchain_community.document_loaders.pdf import PyPDFDirectoryLoader, PyPDFLoader
+from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from managers.config_manager import Config
+from models.singleton_meta import SingletonMeta
 
 
-class VectorStoreService:
+class VectorStoreService(metaclass=SingletonMeta):
 
-    __batch_size = 500
+    async def create(config: Config, to_reembed=False):
+        instance = VectorStoreService(config=config)
+        await instance._record_manager.acreate_schema()
+        if to_reembed:
+            await instance.aadd_to_vector_store()
+        return instance
 
-    def __init__(self, config: Config, to_reembed=False):
+    def __init__(self, config: Config):
         self.config = config
         connection = config.get_value("vector_store")["conn_str"]
         if connection == "no_free_database":
@@ -24,35 +34,31 @@ class VectorStoreService:
         embeddings = GoogleGenerativeAIEmbeddings(model=config.get_value("model_name"))
         # environment must have GOOGLE_API_KEY variable or pass it throgh kwargs
 
+        self._async_engine = create_async_engine(
+            connection,
+            pool_size=10,
+            pool_pre_ping=True,
+            max_overflow=20,
+            pool_timeout=30,
+            pool_recycle=1800,
+        )
+
         self._vector_store = PGVector(
             embeddings=embeddings,
             collection_name=collection_name,
-            connection=connection,
+            connection=self._async_engine,
             use_jsonb=True,
             create_extension=True,
+            async_mode=True,
         )
-        self.record_manager = SQLRecordManager(
-            db_url=connection, namespace=config.get_value("vector_store")["namespace"]
+
+        self._record_manager = SQLRecordManager(
+            engine=self._async_engine,
+            namespace=config.get_value("vector_store")["namespace"],
+            async_mode=True,
         )
-        self.record_manager.create_schema()
-        if to_reembed:
-            self.add_to_vector_store()
 
-    def add_to_vector_store(self, path=None):
-        if path is None:
-            doc_path = self.config.get_value("documents_path")
-        else:
-            doc_path = path
-
-        if doc_path is None:
-            return
-
-        if os.path.isdir(doc_path):
-            loader = PyPDFDirectoryLoader(path=doc_path)
-        else:
-            loader = PyPDFLoader(file_path=doc_path)
-
-        splitter = RecursiveCharacterTextSplitter(
+        self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=150,
             separators=[
@@ -69,38 +75,67 @@ class VectorStoreService:
                 "",
             ],
         )
-        splitted_docs = loader.load_and_split(splitter)
-        result = {}
-        length = len(splitted_docs)
-        print(length)
-        # input("A: ")
-        # if length > VectorStoreService.__batch_size:
-        #     vector_chunks = [
-        #         splitted_docs[i : i + VectorStoreService.__batch_size]
-        #         for i in range(0, len(splitted_docs), VectorStoreService.__batch_size)
-        #     ]
-        #     for chunk in vector_chunks:
-        #         print(chunk)
-        #         result = Counter(result) + Counter(
-        #             index(
-        #                 docs_source=chunk,
-        #                 record_manager=self.record_manager,
-        #                 cleanup="incremental",
-        #                 source_id_key="source",
-        #                 vector_store=self.vector_store,
-        #                 batch_size=VectorStoreService.__batch_size,
-        #             )
-        #         )
-        # else:
-        result = index(
+
+    async def aadd_to_vector_store(self, path=None):
+        if path is None:
+            doc_path = self.config.get_value("documents_path")
+        else:
+            doc_path = path
+
+        if doc_path is None:
+            return
+
+        if os.path.isdir(doc_path):
+            loader = PyPDFDirectoryLoader(path=doc_path)
+        else:
+            loader = PyPDFLoader(file_path=doc_path)
+        splitted_docs = [
+            Document(
+                page_content=doc.page_content,
+                metadata={
+                    **doc.metadata,
+                    "source": os.path.basename(doc.metadata["source"]),
+                },
+            )
+            for doc in loader.load_and_split(self.splitter)
+        ]
+
+        return aindex(
             docs_source=splitted_docs,
-            record_manager=self.record_manager,
+            record_manager=self._record_manager,
             cleanup="incremental",
             source_id_key="source",
             vector_store=self.vector_store,
-            batch_size=VectorStoreService.__batch_size,
         )
-        return result
+
+    async def save_file_to_vector_store(self, file: UploadFile, file_type: str):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_type) as tmp:
+            tmp.write(await file.read())
+            tmp.flush()
+            if file_type == ".pdf":
+                loader = PyPDFLoader(file_path=tmp.name)
+            elif file_type == ".txt":
+                loader = TextLoader(file_path=tmp.name)
+            else:
+                raise NotImplementedError(
+                    f"Support for this {file.content_type} type is not implemented yet"
+                )
+            splitted_docs = [
+                Document(
+                    page_content=doc.page_content,
+                    metadata={**doc.metadata, "source": file.filename},
+                )
+                for doc in loader.load_and_split(self.splitter)
+            ]
+
+            return await aindex(
+                docs_source=splitted_docs,
+                record_manager=self._record_manager,
+                cleanup="incremental",
+                source_id_key="source",
+                vector_store=self.vector_store,
+                batch_size=len(splitted_docs),
+            )
 
     @property
     def vector_store(self) -> VectorStore:
