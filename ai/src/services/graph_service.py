@@ -8,23 +8,10 @@ from langchain_core.retrievers import BaseRetriever
 
 def build_graph(retriever: BaseRetriever):
     config_obj = Config()
-
-    llm = ChatOpenAI(
-        openai_api_key=config_obj.key,
-        model=config_obj.model,
-        temperature=config_obj.temperature,
-    )
-
     tool_factory = ToolFactory(retriever)
     tools = tool_factory.create_tools()
-    agent_factory = AgentFactory(llm, tools)
 
-    agents = {
-        "search": agent_factory.create_agent("search"),
-        "writer": agent_factory.create_agent("writer"),
-    }
-
-    workflow = WorkflowService(agents, tools).build()
+    workflow = WorkflowService(tools, config_obj).build()
 
     graph = workflow.compile()
 

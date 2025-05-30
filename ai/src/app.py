@@ -54,24 +54,16 @@ async def embed():
 async def generate(query: Query):
     graph = get_langgraph()
     input_message = HumanMessage(content=query.question)
-
-    # runnable_config = RunnableConfig(
-    #     configurable={
-    #         "provider": query.provider,
-    #         "model": query.model,
-    #         "temperature": query.temperature,
-    #     }
-    # )
     logger.info(input_message)
 
-    return graph.invoke({"messages": [input_message]})
-    # return graph.with_config(
-    #     configurable={
-    #         "provider": query.provider,
-    #         "model": query.model,
-    #         "temperature": query.temperature,
-    #     }
-    # ).invoke({"messages": [input_message]})
+    # return graph.invoke({"messages": [input_message]})
+    return graph.with_config(
+        configurable={
+            "provider": query.provider,
+            "model": query.model,
+            "temperature": query.temperature,
+        }
+    ).invoke({"messages": [input_message]})
 
 
 if __name__ == "__main__":
