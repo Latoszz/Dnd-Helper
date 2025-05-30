@@ -1,5 +1,7 @@
 import asyncio
+
 import streamlit as st
+
 from config.config_manager import ConfigManager
 from services.service import BackendService
 
@@ -24,6 +26,8 @@ class FrontendApp:
             st.session_state.messages = []
         if "ai_model" not in st.session_state:
             st.session_state.ai_model = config.get('default_model')
+        if "temperature" not in st.session_state:
+            st.session_state.temperature = 1
 
     def display_sidebar(self):
         with st.sidebar:
@@ -31,16 +35,22 @@ class FrontendApp:
 
             # Model selection
             available_models = config.get('ai_models')
+            default_model_index = 0
+            try:
+                default_model_index = available_models.index(*config.get('default_model'))
+            except ValueError:
+                print("no model found that matches the default model, defaulting to 0")
+
             st.session_state.ai_model = st.selectbox(
                 "Select model",
-                available_models)
+                 available_models,
+                 index = default_model_index,
+                 format_func= lambda x: x['model']
+            )
+            st.session_state.temperature = st.slider(label="temperature",min_value=0.0,max_value=2.0,step=0.05)
 
-            #if model != st.session_state.ai_model:
-            #     st.session_state.ai_model = model
 
-            # Clear chat button
-           # if st.button("Clear chat"):
-           #     st.rerun()
+
 
     def display_chat(self):
         for message in st.session_state.messages:
@@ -48,25 +58,32 @@ class FrontendApp:
                 st.markdown(message["content"])
 
         prompt = st.chat_input()
-        with st.chat_message("user"):
-            st.markdown(prompt)
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        if prompt:
+            with st.chat_message("user"):
+                st.markdown(prompt)
+            st.session_state.messages.append({"role": "user", "content": prompt})
 
-        try:
-            response_data = asyncio.run(
-                service.post_data('chat', {'question': prompt
-                  ######################
-                  # here should be an option to add additional info to the post, but the Request dto doesnt respect that
-                  #, 'model': st.session_state.ai_model
-                                           })
-            )
-            response = f"{response_data}"
-        except Exception as e:
-            response = f"Error: {str(e)}"
+            try:
+                print({'question': prompt,
+                        'model': st.session_state.ai_model['model'],
+                        'company': st.session_state.ai_model['company'],
+                         'temperature': st.session_state.temperature})
+                response_data = asyncio.run(
+                    service
+                    .post_data('chat', {
+                        'question': prompt,
+                        'model': st.session_state.ai_model['model'],
+                        'company': st.session_state.ai_model['company'],
+                        'temperature': st.session_state.temperature
+                    })
+                )
+                response = f"{response_data}"
+            except Exception as e:
+                response = f"Error: {str(e)}"
 
-        with st.chat_message("assistant"):
-            st.markdown(response)
-        st.session_state.messages.append({"role": "assistant", "content": response})
+            with st.chat_message("assistant"):
+                st.markdown(response)
+            st.session_state.messages.append({"role": "assistant", "content": response})
 
 
     def run(self):

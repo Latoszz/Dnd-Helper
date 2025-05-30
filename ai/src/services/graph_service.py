@@ -1,9 +1,8 @@
-from agents.agent_factory import AgentFactory
 from managers.config_manager import Config
+from factories.tool_factory import ToolFactory
+from factories.agent_factory import AgentFactory
 from services.workflow_service import WorkflowService
 from langchain_openai import ChatOpenAI
-from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain.tools.retriever import create_retriever_tool
 from langchain_core.retrievers import BaseRetriever
 
 
@@ -17,12 +16,8 @@ def build_graph(retriever: BaseRetriever):
         use_responses_api=True,
     )
 
-    retriever_tool = create_retriever_tool(
-        retriever=retriever,
-        name="retrieve_dnd",
-        description="Search and return information about dungeons and dragons",
-    )
-    tools = [retriever_tool, TavilySearchResults(max_results=5)]
+    tool_factory = ToolFactory(retriever)
+    tools = tool_factory.create_tools()
     agent_factory = AgentFactory(llm, tools)
 
     agents = {
