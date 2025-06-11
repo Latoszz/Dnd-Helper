@@ -6,20 +6,11 @@ class SessionStateManager:
 
     def initialize(self):
         self._initialize_messages()
-        self._initialize_ai_model()
-        self._initialize_temperature()
 
     def _initialize_messages(self):
         if "messages" not in st.session_state:
             st.session_state.messages = []
 
-    def _initialize_ai_model(self):
-        if "ai_model" not in st.session_state:
-            st.session_state.ai_model = self.config.get('default_model')
-
-    def _initialize_temperature(self):
-        if "temperature" not in st.session_state:
-            st.session_state.temperature = self.config.get('default_temperature')
 
     @staticmethod
     def get_messages():
