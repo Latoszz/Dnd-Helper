@@ -3,7 +3,7 @@ from fastapi import HTTPException
 
 import httpx
 
-class BackendService:
+class FrontendService:
     def __init__(self, configManager):
         self.config = configManager.get_config().get('backend', {})
         self.client = httpx.AsyncClient()

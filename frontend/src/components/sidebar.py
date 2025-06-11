@@ -16,8 +16,10 @@ class SidebarComponent:
         st.session_state.temperature = st.slider(
             label="temperature",
             min_value=0.0,
-            max_value=2.0,
-            step=0.05)
+            max_value=1.0,
+            step=0.05,
+            value=st.session_state.temperature
+        )
 
 
     def _display_model_selection(self):
@@ -33,8 +35,9 @@ class SidebarComponent:
     def _get_default_model_index(self, available_models):
         try:
             default_model = self.config.get('default_model')
-            return available_models.index(default_model)
-        except ValueError:
+            return available_models.index(default_model[0])
+        except Exception as error:
             print("no model found that matches the default model, defaulting to 0")
+            print(error)
             return 0
 

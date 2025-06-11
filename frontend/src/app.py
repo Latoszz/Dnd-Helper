@@ -2,40 +2,31 @@ import asyncio
 
 import streamlit as st
 
-from config.config_manager import ConfigManager
-from services.service import BackendService
+from managers.config_manager import ConfigManager
+from services.frontend_service import FrontendService
 from components.sidebar import SidebarComponent
+from managers.session_state_manager import SessionStateManager
 
-config_manager = ConfigManager("frontend/src/config/config.yml")
-config = config_manager.get_config().get('app')
 
-service = BackendService(config_manager)
 
 
 class FrontendApp:
 
     def __init__(self):
+        config_manager = ConfigManager("frontend/src/config/config.yml")
+        self.config = config_manager.get_config().get('app')
+        self.service = FrontendService(config_manager)
 
+        self.sidebar = SidebarComponent(self.config)
+
+        self.session = SessionStateManager(self.config)
         st.set_page_config(
-            page_title=config.get('title'),
-            layout=config.get('layout')
+            page_title=self.config.get('title'),
+            layout=self.config.get('layout')
         )
-        self.sidebar = SidebarComponent(config)
-        self._initialize_session_state()
-
-    def _initialize_session_state(self):
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
-        if "ai_model" not in st.session_state:
-            st.session_state.ai_model = config.get('default_model')
-        if "temperature" not in st.session_state:
-            st.session_state.temperature = 1
-    
-
-
 
     def display_chat(self):
-        for message in st.session_state.messages:
+        for message in self.session.get_messages():
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
@@ -43,21 +34,20 @@ class FrontendApp:
         if prompt:
             with st.chat_message("user"):
                 st.markdown(prompt)
-            st.session_state.messages.append({"role": "user", "content": prompt})
+            self.session.add_message("user",prompt)
 
             try:
                 print({'question': prompt,
-                        'model': st.session_state.ai_model['model'],
-                        'provider': st.session_state.ai_model['provider'],
-                         'temperature': st.session_state.temperature})
+                        'model': self.session.get_ai_model_name(),
+                        'provider': self.session.get_ai_model_provider(),
+                         'temperature': self.session.get_temperature()})
                 response_data = asyncio.run(
-                    service
+                    self.service
                     .post_data('chat', {
                         'question': prompt,
-                        'model': st.session_state.ai_model['model'],
-                        'provider': st.session_state.ai_model['provider'],
-                        'temperature': st.session_state.temperature
-                    })
+                        'model': self.session.get_ai_model_name(),
+                        'provider': self.session.get_ai_model_provider(),
+                         'temperature': self.session.get_temperature()})
                 )
                 response = f"{response_data}"
             except Exception as e:
@@ -65,11 +55,13 @@ class FrontendApp:
 
             with st.chat_message("assistant"):
                 st.markdown(response)
-            st.session_state.messages.append({"role": "assistant", "content": response})
+            self.session.add_message("assistant",response)
 
 
     def run(self):
         st.title("DnD bot")
+
+        self.session.initialize()
         self.sidebar.display()
         self.display_chat()
 

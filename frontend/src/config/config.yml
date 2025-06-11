@@ -9,6 +9,7 @@ app:
   app_title: 'test_app_title'
   title: "AI Chatbot"
   layout: wide
+  default_temperature: 0.5
   default_model:
     - model: 'gemini-flash-2.0'
       provider: 'google_genai'
