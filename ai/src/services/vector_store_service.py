@@ -1,58 +1,145 @@
 import os
-import torch.cuda
-from langchain_community.document_loaders import PyPDFDirectoryLoader
-from langchain.text_splitter import SentenceTransformersTokenTextSplitter
-from langchain_community.vectorstores import FAISS
-from langchain_huggingface.embeddings import HuggingFaceEmbeddings
+import tempfile
+from fastapi import UploadFile
+from sqlalchemy.ext.asyncio import create_async_engine
+from langchain.vectorstores import VectorStore
+from langchain_core.vectorstores.base import BaseRetriever
+from langchain_core.documents.base import Document
+from langchain_postgres.vectorstores import PGVector
+from langchain.indexes import aindex
+from langchain_google_genai.embeddings import GoogleGenerativeAIEmbeddings
+from langchain.indexes import SQLRecordManager
+from langchain_community.document_loaders.pdf import PyPDFDirectoryLoader, PyPDFLoader
+from langchain_community.document_loaders import TextLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from managers.config_manager import Config
+from models.singleton_meta import SingletonMeta
 
 
-def create_vector_store(config: Config, recreate=False):
-    index_name = config.get_value("vector_store")
-    embeddings = HuggingFaceEmbeddings(
-        model_name="BAAI/bge-large-en-v1.5",
-        model_kwargs={"device": "cuda" if torch.cuda.is_available() else "cpu"},
-        encode_kwargs={"normalize_embeddings": True},
-    )
+class VectorStoreService(metaclass=SingletonMeta):
 
-    print(f"Looking for index {index_name}")
-    print(os.path.abspath(index_name))
-    if index_name is not None and os.path.exists(index_name) and not recreate:
-        print("Vector store detected")
-        db = FAISS.load_local(
-            index_name, embeddings, allow_dangerous_deserialization=True
+    async def create(config: Config, to_reembed=False):
+        instance = VectorStoreService(config=config)
+        await instance._record_manager.acreate_schema()
+        if to_reembed:
+            await instance.aadd_to_vector_store()
+        return instance
+
+    def __init__(self, config: Config):
+        self.config = config
+        connection = config.get_value("vector_store")["conn_str"]
+        if connection == "no_free_database":
+            connection = os.getenv("POSTGRES_TEG")
+        collection_name = config.get_value("vector_store")["collection_name"]
+        embeddings = GoogleGenerativeAIEmbeddings(model=config.get_value("model_name"))
+        # environment must have GOOGLE_API_KEY variable or pass it throgh kwargs
+
+        self._async_engine = create_async_engine(
+            connection,
+            pool_size=10,
+            pool_pre_ping=True,
+            max_overflow=20,
+            pool_timeout=30,
+            pool_recycle=1800,
         )
-        return db
 
-    if recreate:
-        print("Creating new index")
-    else:
-        print("Index couldn't be found")
+        self._vector_store = PGVector(
+            embeddings=embeddings,
+            collection_name=collection_name,
+            connection=self._async_engine,
+            use_jsonb=True,
+            create_extension=True,
+            async_mode=True,
+        )
 
-    doc_path = config.get_value("documents_path")
-    if doc_path is None:
-        doc_path = input("Please provide path to the documents: ")
+        self._record_manager = SQLRecordManager(
+            engine=self._async_engine,
+            namespace=config.get_value("vector_store")["namespace"],
+            async_mode=True,
+        )
 
-    loader = PyPDFDirectoryLoader(path=doc_path)
+        self.splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=150,
+            separators=[
+                "\n\n",
+                "\n",
+                " ",
+                ".",
+                ",",
+                "\u200b",  # Zero-width space
+                "\uff0c",  # Fullwidth comma
+                "\u3001",  # Ideographic comma
+                "\uff0e",  # Fullwidth full stop
+                "\u3002",  # Ideographic full stop
+                "",
+            ],
+        )
 
-    text_splitter = SentenceTransformersTokenTextSplitter(
-        model_name="BAAI/bge-large-en-v1.5", chunk_size=384, chunk_overlap=30
-    )
+    async def aadd_to_vector_store(self, path=None):
+        if path is None:
+            doc_path = self.config.get_value("documents_path")
+        else:
+            doc_path = path
 
-    documents = loader.load_and_split(text_splitter)
-    print("Loaded and split the documents")
+        if doc_path is None:
+            return
 
-    print(
-        torch.cuda.get_device_name(0)
-        if torch.cuda.is_available()
-        else "No GPU detected"
-    )
+        if os.path.isdir(doc_path):
+            loader = PyPDFDirectoryLoader(path=doc_path)
+        else:
+            loader = PyPDFLoader(file_path=doc_path)
+        splitted_docs = [
+            Document(
+                page_content=doc.page_content,
+                metadata={
+                    **doc.metadata,
+                    "source": os.path.basename(doc.metadata["source"]),
+                },
+            )
+            for doc in loader.load_and_split(self.splitter)
+        ]
 
-    db = FAISS.from_documents(documents, embeddings)
-    db.save_local(index_name)
-    print(f"Saved index: {index_name}")
-    return db
+        return aindex(
+            docs_source=splitted_docs,
+            record_manager=self._record_manager,
+            cleanup="incremental",
+            source_id_key="source",
+            vector_store=self.vector_store,
+        )
 
+    async def save_file_to_vector_store(self, file: UploadFile, file_type: str):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_type) as tmp:
+            tmp.write(await file.read())
+            tmp.flush()
+            if file_type == ".pdf":
+                loader = PyPDFLoader(file_path=tmp.name)
+            elif file_type == ".txt":
+                loader = TextLoader(file_path=tmp.name)
+            else:
+                raise NotImplementedError(
+                    f"Support for this {file.content_type} type is not implemented yet"
+                )
+            splitted_docs = [
+                Document(
+                    page_content=doc.page_content,
+                    metadata={**doc.metadata, "source": file.filename},
+                )
+                for doc in loader.load_and_split(self.splitter)
+            ]
 
-if __name__ == "__main__":
-    create_vector_store()
+            return await aindex(
+                docs_source=splitted_docs,
+                record_manager=self._record_manager,
+                cleanup="incremental",
+                source_id_key="source",
+                vector_store=self.vector_store,
+                batch_size=len(splitted_docs),
+            )
+
+    @property
+    def vector_store(self) -> VectorStore:
+        return self._vector_store
+
+    def as_retriever(self, **kwargs) -> BaseRetriever:
+        return self.vector_store.as_retriever(kwargs=kwargs)
