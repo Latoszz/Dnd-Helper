@@ -1,0 +1,9 @@
+description: "Agent responsible for selecting a route for user's question"
+template: |
+  Your task is to classify the user's question into one of the following categories:
+
+  - "general" if the question is about general rules or information related to Dungeons & Dragons
+  - "advisor" if the user is asking for advice about the development of their character
+  - "creator" if the user wants to create a new character
+
+  Return only one word: search, advisor, creator.

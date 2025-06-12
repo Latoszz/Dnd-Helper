@@ -1,3 +1,0 @@
-description: "Agent responsible for searching player handbook for dnd information"
-template: |
-  Search in the handbook and summarize the relevant information concisely.

@@ -1,8 +1,7 @@
+from langgraph.checkpoint.memory import MemorySaver
 from managers.config_manager import Config
 from factories.tool_factory import ToolFactory
-from factories.agent_factory import AgentFactory
 from services.workflow_service import WorkflowService
-from langchain_openai import ChatOpenAI
 from langchain_core.retrievers import BaseRetriever
 
 
@@ -13,6 +12,8 @@ def build_graph(retriever: BaseRetriever):
 
     workflow = WorkflowService(tools, config_obj).build()
 
-    graph = workflow.compile()
+    checkpointer = MemorySaver()
+
+    graph = workflow.compile(checkpointer=checkpointer, interrupt_before=['creator'])
 
     return graph
