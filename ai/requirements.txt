@@ -3,10 +3,10 @@ langchain_core
 langchain_community
 langchain-openai
 langchain-google-genai
+langchain_postgres
 langgraph
 pypdf
 psycopg[binary]
-psycopg2-binary
 pydantic
 fastapi
 fastapi[standard]
