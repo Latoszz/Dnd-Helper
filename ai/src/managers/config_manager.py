@@ -11,7 +11,7 @@ class Config:
         # Load values from environment variables
         self.openai_key = os.getenv(
             "OPENAI_API_KEY_TEG",
-            "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",
+            "<insert your OPENAI KEY here, or make an env variable>",
         )
         self.google_genai_key = os.getenv(
             "GOOGLE_GENAI_API_KEY_TEG",
