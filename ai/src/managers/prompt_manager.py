@@ -13,7 +13,7 @@ class PromptManager:
         for yaml_file in prompt_dir.glob("*.yaml"):
             with open(yaml_file, 'r') as f:
                 data = yaml.safe_load(f)
-                print("data:", data)
+                #print("data:", data)
                 agent_type = yaml_file.stem
                 prompts[agent_type] = {
                     'description': data.get('description', f"Agent for {agent_type}"),

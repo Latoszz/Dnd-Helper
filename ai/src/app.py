@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
         config=config, to_reembed=False
     )
     app.state.graph = build_graph(get_vector_store_service().as_retriever())
-    logger.info(get_langgraph().get_graph().draw_mermaid())
+    #logger.info(get_langgraph().get_graph().draw_mermaid())
     yield
     logger.info("Shutting down")
 
