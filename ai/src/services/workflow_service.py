@@ -1,7 +1,7 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnableConfig
 from langgraph.prebuilt import ToolNode
-from langgraph.graph import StateGraph
+from langgraph.graph import StateGraph, END
 from langchain_core.messages import AIMessage
 import functools
 from typing import Literal
@@ -99,11 +99,12 @@ class WorkflowService:
                 agent_type="creator",
                 uses_tools=True
             ),
-            "writer": functools.partial(
+            "review": functools.partial(
                 self._create_node,
-                agent_type="writer",
+                agent_type="review",
             ),
             "tools": ToolNode(self.tools),
+            "review_tools": ToolNode(self.tools)
         }
 
         for name, node in nodes.items():
@@ -138,20 +139,33 @@ class WorkflowService:
             self._route_from_router,
         )
 
-        self.workflow.set_finish_point("writer")
+        self.workflow.add_conditional_edges(
+            "review",
+            self._review_should_search,
+        )
 
-    def _should_search(self, state) -> Literal["tools", "writer"]:
+        self.workflow.add_edge("review_tools", "review")
+
+    def _should_search(self, state) -> Literal["tools", "review"]:
         messages = state["messages"]
         last_message = messages[-1]
         # If the LLM makes a tool call, then we route to the "tools" node
         if last_message.tool_calls:
             return "tools"
         # Otherwise, we stop (reply to the user)
-        return "writer"
+        return "review"
 
     def _route_from_router(self, state) -> Literal["general", "advisor", "creator"]:
         intent = state.get("intent", "general")
         return intent
+
+    def _review_should_search(self, state) -> Literal["tools", "__end__"]:
+        messages = state["messages"]
+        last_message = messages[-1]
+        # If the LLM makes a tool call, then we route to the "tools" node
+        if last_message.tool_calls:
+            return "tools"
+        return END
 
     def build(self):
         self._setup_nodes()
