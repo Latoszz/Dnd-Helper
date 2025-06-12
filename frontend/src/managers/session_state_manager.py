@@ -24,14 +24,12 @@ class SessionStateManager:
     def get_ai_model():
         return st.session_state.ai_model
 
-    @staticmethod
-    def get_ai_model_name():
-        return SessionStateManager.get_ai_model()['model']
-
-    @staticmethod
-    def get_ai_model_provider():
-        return SessionStateManager.get_ai_model()['provider']
 
     @staticmethod
     def get_temperature():
         return st.session_state.temperature
+
+    @staticmethod
+    def get_uploaded_file():
+        return st.session_state.uploaded_file
+

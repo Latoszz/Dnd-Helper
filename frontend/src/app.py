@@ -26,7 +26,7 @@ class FrontendApp:
 
     def _initialize_components(self):
         self.chat = ChatComponent(self.service)
-        self.sidebar = SidebarComponent(self.config)
+        self.sidebar = SidebarComponent(self.config,self.service)
    
     def run(self):
         SessionStateManager(self.config).initialize()

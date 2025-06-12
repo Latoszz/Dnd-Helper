@@ -3,6 +3,7 @@ backend:
   endpoints:
     docs: "/docs"
     chat: "/chat"
+    file: "/upload_file"
   timeout: 30
 
 app:
@@ -18,4 +19,9 @@ app:
       provider: 'openai'
     - model: 'gemini-flash-2.0'
       provider: 'google_genai'
+  accepted_file_types:
+    - "pdf"
+    - "png"
+    - "jpg"
+    - "jpeg"
   settings_title: 'Settings'
