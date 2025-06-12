@@ -1,8 +1,6 @@
 from managers.config_manager import Config
 from factories.tool_factory import ToolFactory
-from factories.agent_factory import AgentFactory
 from services.workflow_service import WorkflowService
-from langchain_openai import ChatOpenAI
 from langchain_core.retrievers import BaseRetriever
 
 

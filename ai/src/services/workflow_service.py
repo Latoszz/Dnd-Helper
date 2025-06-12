@@ -9,6 +9,8 @@ from langchain.chat_models import init_chat_model
 
 from managers.prompt_manager import PromptManager
 from services.agent_state import AgentState
+from sympy import false
+
 
 class WorkflowService:
     def __init__(self, tools, config):
@@ -27,7 +29,7 @@ class WorkflowService:
         return {"messages": [AIMessage(content=result.content, tool_calls=result.tool_calls, name=name)]}
 
 
-    def _create_node(self, state: AgentState, config: RunnableConfig, agent_type: str) -> AgentState:
+    def _create_agent(self, config: RunnableConfig, agent_type: str, uses_tools = False):
         node_config = config.get("configurable", {})
 
         provider = node_config.get("provider")
@@ -41,9 +43,7 @@ class WorkflowService:
             key = self.config.google_genai_key
 
         llm = init_chat_model(model_provider=provider, model=model, temperature=temperature, api_key=key)
-
         system_message = self.prompt_manager.get_template(agent_type)
-
         prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", "{system_message}"),
@@ -51,10 +51,16 @@ class WorkflowService:
             ]
         ).partial(system_message=system_message)
 
-        if agent_type == "search":
+        if uses_tools:
             agent = prompt | llm.bind_tools(self.tools)
         else:
             agent = prompt | llm
+
+        return agent
+
+    def _create_node(self, state: AgentState, config: RunnableConfig, agent_type: str, uses_tools = False) -> AgentState:
+
+        agent = self._create_agent(config, agent_type, uses_tools)
 
         result = agent.invoke(state)
 
@@ -64,11 +70,29 @@ class WorkflowService:
 
         return {"messages": [AIMessage(content=result.content, tool_calls=result.tool_calls, name=f"{agent_type}_agent")]}
 
+    def _create_router_node(self, state: AgentState, config: RunnableConfig) -> AgentState:
+
+        agent = self._create_agent(config, "router")
+        result = agent.invoke(state)
+
+        result.name = "router_agent"
+        return {"intent": result.content}
+
+
     def _setup_nodes(self):
         nodes = {
-            "search": functools.partial(
+            "router": functools.partial(
+                self._create_router_node,
+            ),
+            "general": functools.partial(
                 self._create_node,
-                agent_type="search",
+                agent_type="general",
+                uses_tools=True
+            ),
+            "advisor": functools.partial(
+                self._create_node,
+                agent_type="advisor",
+                uses_tools=True
             ),
             "writer": functools.partial(
                 self._create_node,
@@ -81,16 +105,28 @@ class WorkflowService:
             self.workflow.add_node(name, node)
 
     def _setup_edges(self):
-        self.workflow.set_entry_point("search")
+
+        self.workflow.set_entry_point("router")
+        self.workflow.add_conditional_edges(
+            "router",
+            self._route_from_router,
+        )
 
         # Search node transitions
         self.workflow.add_conditional_edges(
-            "search",
+            "general",
             self._should_search,
         )
 
-        # Tools node always returns to search
-        self.workflow.add_edge("tools", "search")
+        self.workflow.add_conditional_edges(
+            "advisor",
+            self._should_search,
+        )
+
+        self.workflow.add_conditional_edges(
+            "tools",
+            self._route_from_router,
+        )
 
         self.workflow.set_finish_point("writer")
 
@@ -102,6 +138,10 @@ class WorkflowService:
             return "tools"
         # Otherwise, we stop (reply to the user)
         return "writer"
+
+    def _route_from_router(self, state) -> Literal["general", "advisor"]:
+        intent = state.get("intent", "general")
+        return intent
 
     def build(self):
         self._setup_nodes()
