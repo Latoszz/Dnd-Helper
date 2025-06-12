@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel
 
 
 class Request(BaseModel):
@@ -8,4 +8,5 @@ class Request(BaseModel):
     temperature: float
 
     class Config:
-        extra = 'allow'
+        extra = "allow"
+        extra = "allow"

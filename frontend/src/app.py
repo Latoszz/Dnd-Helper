@@ -8,6 +8,7 @@ from services.frontend_service import FrontendService
 from components.sidebar import SidebarComponent
 from managers.session_state_manager import SessionStateManager
 
+
 class FrontendApp:
 
     def __init__(self):
@@ -28,6 +29,7 @@ class FrontendApp:
         self.chat = ChatComponent(self.service)
         self.sidebar = SidebarComponent(self.config,self.service)
    
+
     def run(self):
         SessionStateManager(self.config).initialize()
 
