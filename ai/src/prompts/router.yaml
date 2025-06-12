@@ -6,4 +6,4 @@ template: |
   - "advisor" if the user is asking for advice about the development of their character
   - "creator" if the user wants to create a new character
 
-  Return only one word: search, advisor, creator.
+  Return only one word: general, advisor, creator.

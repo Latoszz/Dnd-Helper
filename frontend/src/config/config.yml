@@ -12,12 +12,12 @@ app:
   layout: wide
   default_temperature: 0.5
   default_model:
-    - model: "gemini-flash-2.0"
+    - model: "gemini-2.0-flash"
       provider: "google_genai"
   ai_models:
     - model: 'gpt-4o-mini'
       provider: 'openai'
-    - model: 'gemini-flash-2.0'
+    - model: 'gemini-2.0-flash'
       provider: 'google_genai'
   accepted_file_types:
     - "pdf"

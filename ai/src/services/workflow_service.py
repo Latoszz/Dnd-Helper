@@ -9,7 +9,7 @@ from langchain.chat_models import init_chat_model
 
 from managers.prompt_manager import PromptManager
 from services.agent_state import AgentState
-from sympy import false
+
 
 
 class WorkflowService:
@@ -69,14 +69,6 @@ class WorkflowService:
             return {"messages": [result]}
 
         return {"messages": [AIMessage(content=result.content, tool_calls=result.tool_calls, name=f"{agent_type}_agent")]}
-
-    def _create_router_node(self, state: AgentState, config: RunnableConfig) -> AgentState:
-
-        agent = self._create_agent(config, "router")
-        result = agent.invoke(state)
-
-        result.name = "router_agent"
-        return {"intent": result.content}
 
     def _create_router_node(self, state: AgentState, config: RunnableConfig) -> AgentState:
 
@@ -157,7 +149,7 @@ class WorkflowService:
         # Otherwise, we stop (reply to the user)
         return "writer"
 
-    def _route_from_router(self, state) -> Literal["general", "advisor"]:
+    def _route_from_router(self, state) -> Literal["general", "advisor", "creator"]:
         intent = state.get("intent", "general")
         return intent
 
