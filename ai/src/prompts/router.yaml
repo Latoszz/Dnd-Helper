@@ -6,5 +6,7 @@ template: |
   - "advisor" if the user is asking for advice about the development of their character
   - "creator" if the user wants to create a new character
   - "bestiary" if the user is asking about monsters, creatures, stat blocks, combat behavior, or monster selection for encounters.
+  - "combat_expert" if the question is about combat rules and mechanics, such as initiative, actions, damage types, 
+  conditions, or tactical situations.
 
-  Return only one word: general, advisor, creator, bestiary.
+  Return only one word: general, advisor, creator, bestiary, combat.
