@@ -12,8 +12,6 @@ def build_graph(retriever: BaseRetriever):
 
     workflow = WorkflowService(tools, config_obj).build()
 
-    checkpointer = MemorySaver()
-
-    graph = workflow.compile(checkpointer=checkpointer, interrupt_before=['creator'])
+    graph = workflow.compile()
 
     return graph
