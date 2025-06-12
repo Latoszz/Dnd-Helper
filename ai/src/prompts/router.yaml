@@ -4,5 +4,6 @@ template: |
 
   - "general" if the question is about general rules or information related to Dungeons & Dragons
   - "advisor" if the user is asking for advice about the development of their character
+  - "creator" if the user wants to create a new character
 
-  Return only one word: general or advisor.
+  Return only one word: search, advisor, creator.

@@ -1,3 +1,4 @@
+from langgraph.checkpoint.memory import MemorySaver
 from managers.config_manager import Config
 from factories.tool_factory import ToolFactory
 from services.workflow_service import WorkflowService
@@ -11,6 +12,8 @@ def build_graph(retriever: BaseRetriever):
 
     workflow = WorkflowService(tools, config_obj).build()
 
-    graph = workflow.compile()
+    checkpointer = MemorySaver()
+
+    graph = workflow.compile(checkpointer=checkpointer, interrupt_before=['creator'])
 
     return graph

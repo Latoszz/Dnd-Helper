@@ -78,6 +78,14 @@ class WorkflowService:
         result.name = "router_agent"
         return {"intent": result.content}
 
+    def _create_router_node(self, state: AgentState, config: RunnableConfig) -> AgentState:
+
+        agent = self._create_agent(config, "router")
+        result = agent.invoke(state)
+
+        result.name = "router_agent"
+        return {"intent": result.content}
+
 
     def _setup_nodes(self):
         nodes = {
@@ -92,6 +100,11 @@ class WorkflowService:
             "advisor": functools.partial(
                 self._create_node,
                 agent_type="advisor",
+                uses_tools=True
+            ),
+            "creator": functools.partial(
+                self._create_node,
+                agent_type="creator",
                 uses_tools=True
             ),
             "writer": functools.partial(
@@ -120,6 +133,11 @@ class WorkflowService:
 
         self.workflow.add_conditional_edges(
             "advisor",
+            self._should_search,
+        )
+
+        self.workflow.add_conditional_edges(
+            "creator",
             self._should_search,
         )
 
