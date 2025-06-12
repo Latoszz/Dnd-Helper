@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
 from httpx import AsyncClient
-from models.request import Query
+import logging
+from models.request import Request
 from managers.config_manager import Config
 import logging
 
@@ -31,7 +32,7 @@ def get_http_client() -> AsyncClient:
 
 
 @app.post("/chat")
-async def chit_chat(request: Query):
+async def chit_chat(request: Request):
     client = get_http_client()
     response = await client.post(
         url="/generate",
