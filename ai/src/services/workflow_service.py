@@ -99,6 +99,10 @@ class WorkflowService:
                 agent_type="creator",
                 uses_tools=True
             ),
+            "bestiary": functools.partial(
+                self._create_node,
+                agent_type="bestiary",
+            ),
             "review": functools.partial(
                 self._create_node,
                 agent_type="review",
@@ -135,6 +139,11 @@ class WorkflowService:
         )
 
         self.workflow.add_conditional_edges(
+            "bestiary",
+            self._should_search,
+        )
+
+        self.workflow.add_conditional_edges(
             "tools",
             self._route_from_router,
         )
@@ -155,7 +164,7 @@ class WorkflowService:
         # Otherwise, we stop (reply to the user)
         return "review"
 
-    def _route_from_router(self, state) -> Literal["general", "advisor", "creator"]:
+    def _route_from_router(self, state) -> Literal["general", "advisor", "creator", "bestiary"]:
         intent = state.get("intent", "general")
         return intent
 

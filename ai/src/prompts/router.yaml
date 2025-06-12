@@ -5,5 +5,6 @@ template: |
   - "general" if the question is about general rules or information related to Dungeons & Dragons
   - "advisor" if the user is asking for advice about the development of their character
   - "creator" if the user wants to create a new character
+  - "bestiary" if the user is asking about monsters, creatures, stat blocks, combat behavior, or monster selection for encounters.
 
-  Return only one word: general, advisor, creator.
+  Return only one word: general, advisor, creator, bestiary.
