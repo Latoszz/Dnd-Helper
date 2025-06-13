@@ -22,7 +22,12 @@ class ChatComponent:
         prompt = st.chat_input()
         if prompt:
             self._display_user_message(prompt)
-            self._process_and_display_ai_response(prompt)
+            print(st.session_state.is_streaming)
+            if st.session_state.is_streaming:
+                self._process_and_display_ai_response_stream(prompt)
+            else:
+                self._process_and_display_ai_response(prompt)
+
 
     def _display_user_message(self, prompt):
         with st.chat_message("user"):
@@ -58,3 +63,42 @@ class ChatComponent:
 
         return str(response_data)
 
+    def _process_and_display_ai_response_stream(self, prompt):
+        with st.chat_message("assistant"):
+            try:
+                # Create a generator for the streaming response
+                response_generator = self._get_ai_response_stream(prompt)
+
+                # Use st.write_stream to display the streaming response
+                full_response = st.write_stream(response_generator)
+
+                # Store the complete response in session state
+                SessionStateManager.add_message("assistant", full_response)
+
+            except Exception as e:
+                error_message = f"Error: {str(e)}"
+                st.markdown(error_message)
+                SessionStateManager.add_message("assistant", error_message)
+
+    def _get_ai_response_stream(self, prompt):
+        ai_model = SessionStateManager.get_ai_model()
+        temperature = SessionStateManager.get_temperature()
+
+        request_data = {
+            'question': prompt,
+            'model': ai_model['model'],
+            'provider': ai_model['provider'],
+            'temperature': temperature
+        }
+
+        print(f"Sending streaming request: {request_data}")
+
+        # Run the async streaming function in sync context
+        return asyncio.run(self._stream_response(request_data))
+
+    async def _stream_response(self, request_data):
+        try:
+            async for chunk in self.service.stream_data('chat/stream', request_data):
+                yield chunk
+        except Exception as e:
+            yield f"Error: {str(e)}"

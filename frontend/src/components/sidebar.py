@@ -19,6 +19,7 @@ class SidebarComponent:
             self._display_temperature_slider()
             self._display_file_upload()
             self._display_file_upload_button()
+            self._display_is_streaming_toggle()
 
 
     def _display_temperature_slider(self):
@@ -67,5 +68,9 @@ class SidebarComponent:
                         .post_file('file', st.session_state.uploaded_file)
                 ))
         )
+
+    def _display_is_streaming_toggle(self):
+        should_stream = st.toggle("Stream response", value=False, key="is_streaming")
+
 
 

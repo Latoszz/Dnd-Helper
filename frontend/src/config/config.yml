@@ -4,16 +4,17 @@ backend:
     docs: "/docs"
     chat: "/chat"
     file: "/upload_file"
-  timeout: 30
+    chat_stream: "/chat/stream"
+  timeout: 120
 
 app:
-  app_title: "test_app_title"
-  title: "AI Chatbot"
+  app_title: "Dnd_helper"
+  title: "D&D Helper"
   layout: wide
   default_temperature: 0.5
   default_model:
-    - model: "gemini-2.0-flash"
-      provider: "google_genai"
+    - model: "gpt-4o-mini"
+      provider: "openai"
   ai_models:
     - model: 'gpt-4o-mini'
       provider: 'openai'
