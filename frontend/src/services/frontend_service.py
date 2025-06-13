@@ -52,7 +52,7 @@ class FrontendService:
             print(f"Error posting data: {e}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Backend communication failed: {str(e)}"
+                detail=f"Backend communication failed: {e}"
             )
     async def post_file(self, endpoint_key: str,uploadedFile: UploadedFile):
         try:
@@ -80,7 +80,7 @@ class FrontendService:
                 request_params = {
                     "url": self._get_url(endpoint_key),
                     "json": payload,
-                    "timeout": self.config.get('timeout', 30.0),
+                    "timeout": self.config.get('timeout'),
                     "headers": {"Accept": "text/event-stream"}  # For SSE
                 }
 

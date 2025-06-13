@@ -1,11 +1,11 @@
 backend:
-  base_url: "http://127.0.0.1:9000"
+  base_url: "http://127.0.0.1:8000"
   endpoints:
     docs: "/docs"
     chat: "/chat"
     file: "/upload_file"
     chat_stream: "/chat/stream"
-  timeout: 30
+  timeout: 120
 
 app:
   app_title: "Dnd_helper"
