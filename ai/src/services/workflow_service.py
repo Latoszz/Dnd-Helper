@@ -11,7 +11,6 @@ from managers.prompt_manager import PromptManager
 from services.agent_state import AgentState
 
 
-
 class WorkflowService:
     def __init__(self, tools, config):
         self.tools = tools
@@ -26,10 +25,15 @@ class WorkflowService:
             result.name = name
             return {"messages": [result]}
 
-        return {"messages": [AIMessage(content=result.content, tool_calls=result.tool_calls, name=name)]}
+        return {
+            "messages": [
+                AIMessage(
+                    content=result.content, tool_calls=result.tool_calls, name=name
+                )
+            ]
+        }
 
-
-    def _create_agent(self, config: RunnableConfig, agent_type: str, uses_tools = False):
+    def _create_agent(self, config: RunnableConfig, agent_type: str, uses_tools=False):
         node_config = config.get("configurable", {})
 
         provider = node_config.get("provider")
@@ -42,7 +46,9 @@ class WorkflowService:
         elif provider == "google_genai":
             key = self.config.google_genai_key
 
-        llm = init_chat_model(model_provider=provider, model=model, temperature=temperature, api_key=key)
+        llm = init_chat_model(
+            model_provider=provider, model=model, temperature=temperature, api_key=key
+        )
         system_message = self.prompt_manager.get_template(agent_type)
         prompt = ChatPromptTemplate.from_messages(
             [
@@ -58,7 +64,13 @@ class WorkflowService:
 
         return agent
 
-    def _create_node(self, state: AgentState, config: RunnableConfig, agent_type: str, uses_tools = False) -> AgentState:
+    def _create_node(
+        self,
+        state: AgentState,
+        config: RunnableConfig,
+        agent_type: str,
+        uses_tools=False,
+    ) -> AgentState:
 
         agent = self._create_agent(config, agent_type, uses_tools)
 
@@ -68,9 +80,19 @@ class WorkflowService:
             result.name = f"{agent_type}_agent"
             return {"messages": [result]}
 
-        return {"messages": [AIMessage(content=result.content, tool_calls=result.tool_calls, name=f"{agent_type}_agent")]}
+        return {
+            "messages": [
+                AIMessage(
+                    content=result.content,
+                    tool_calls=result.tool_calls,
+                    name=f"{agent_type}_agent",
+                )
+            ]
+        }
 
-    def _create_router_node(self, state: AgentState, config: RunnableConfig) -> AgentState:
+    def _create_router_node(
+        self, state: AgentState, config: RunnableConfig
+    ) -> AgentState:
 
         agent = self._create_agent(config, "router")
         result = agent.invoke(state)
@@ -78,26 +100,19 @@ class WorkflowService:
         result.name = "router_agent"
         return {"intent": result.content}
 
-
     def _setup_nodes(self):
         nodes = {
             "router": functools.partial(
                 self._create_router_node,
             ),
             "general": functools.partial(
-                self._create_node,
-                agent_type="general",
-                uses_tools=True
+                self._create_node, agent_type="general", uses_tools=True
             ),
             "advisor": functools.partial(
-                self._create_node,
-                agent_type="advisor",
-                uses_tools=True
+                self._create_node, agent_type="advisor", uses_tools=True
             ),
             "creator": functools.partial(
-                self._create_node,
-                agent_type="creator",
-                uses_tools=True
+                self._create_node, agent_type="creator", uses_tools=True
             ),
             "bestiary": functools.partial(
                 self._create_node,
@@ -112,7 +127,7 @@ class WorkflowService:
                 agent_type="review",
             ),
             "tools": ToolNode(self.tools),
-            "review_tools": ToolNode(self.tools)
+            "review_tools": ToolNode(self.tools),
         }
 
         for name, node in nodes.items():
@@ -173,7 +188,9 @@ class WorkflowService:
         # Otherwise, we stop (reply to the user)
         return "review"
 
-    def _route_from_router(self, state) -> Literal["general", "advisor", "creator", "bestiary", "combat"]:
+    def _route_from_router(
+        self, state
+    ) -> Literal["general", "advisor", "creator", "bestiary", "combat"]:
         intent = state.get("intent", "general")
         return intent
 

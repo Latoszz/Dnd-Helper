@@ -6,8 +6,9 @@ langchain-openai
 langchain-google-genai
 langchain_postgres
 langgraph
+langgraph-checkpoint-postgres
 pypdf
-psycopg[binary]
+psycopg[binary, pool]
 pydantic
 fastapi
 fastapi[standard]

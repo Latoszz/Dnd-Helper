@@ -4,6 +4,7 @@ import streamlit as st
 from services.frontend_service import FrontendService
 from managers.session_state_manager import SessionStateManager
 
+
 class ChatComponent:
     def __init__(self, frontend_service: FrontendService):
         self.service = frontend_service
@@ -28,7 +29,6 @@ class ChatComponent:
             else:
                 self._process_and_display_ai_response(prompt)
 
-
     def _display_user_message(self, prompt):
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -49,17 +49,15 @@ class ChatComponent:
         temperature = SessionStateManager.get_temperature()
 
         request_data = {
-            'question': prompt,
-            'model': ai_model['model'],
-            'provider': ai_model['provider'],
-            'temperature': temperature
+            "question": prompt,
+            "model": ai_model["model"],
+            "provider": ai_model["provider"],
+            "temperature": temperature,
         }
 
         print(f"Sending request: {request_data}")
 
-        response_data = asyncio.run(
-            self.service.post_data('chat', request_data)
-        )
+        response_data = asyncio.run(self.service.post_data("chat", request_data))
 
         return str(response_data)
 
@@ -85,20 +83,20 @@ class ChatComponent:
         temperature = SessionStateManager.get_temperature()
 
         request_data = {
-            'question': prompt,
-            'model': ai_model['model'],
-            'provider': ai_model['provider'],
-            'temperature': temperature
+            "question": prompt,
+            "model": ai_model["model"],
+            "provider": ai_model["provider"],
+            "temperature": temperature,
         }
 
         print(f"Sending streaming request: {request_data}")
 
         # Run the async streaming function in sync context
-        return asyncio.run(self._stream_response(request_data))
+        return self._stream_response(request_data)
 
     async def _stream_response(self, request_data):
         try:
-            async for chunk in self.service.stream_data('chat/stream', request_data):
+            async for chunk in self.service.stream_data("chat_stream", request_data):
                 yield chunk
         except Exception as e:
             yield f"Error: {str(e)}"

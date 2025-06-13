@@ -4,8 +4,8 @@ backend:
     docs: "/docs"
     chat: "/chat"
     file: "/upload_file"
-    chat_stream: "/chat/stream"
-  timeout: 120
+    chat_stream: "/chat"
+  timeout: 240
 
 app:
   app_title: "Dnd_helper"
@@ -16,14 +16,13 @@ app:
     - model: "gpt-4o-mini"
       provider: "openai"
   ai_models:
-    - model: 'gpt-4o-mini'
-      provider: 'openai'
-    - model: 'gemini-2.0-flash'
-      provider: 'google_genai'
+    - model: "gpt-4o-mini"
+      provider: "openai"
+    - model: "gemini-2.0-flash"
+      provider: "google_genai"
   accepted_file_types:
     - "pdf"
     - "png"
     - "jpg"
     - "jpeg"
-  settings_title: 'Settings'
-
+  settings_title: "Settings"
